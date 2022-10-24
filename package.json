@@ -1,0 +1,43 @@
+{
+  "name": "@maildummy/client",
+  "version": "1.0.0",
+  "description": "JavaScript client for Maildummy",
+  "types": "./lib/cjs/types/index.d.ts",
+  "main": "./lib/cjs/index.js",
+  "files": [
+    "lib/**/*"
+  ],
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/esm/types/index.d.ts",
+        "default": "./lib/esm/index.mjs"
+      },
+      "require": {
+        "types": "./lib/cjs/types/index.d.ts",
+        "default": "./lib/cjs/index.js"
+      }
+    }
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean": "rm -rf ./lib",
+    "build": "npm run clean && npm run build:esm && npm run build:cjs",
+    "build:esm": "tsc -p ./configs/tsconfig.esm.json && mv lib/esm/index.js lib/esm/index.mjs",
+    "build:cjs": "tsc -p ./configs/tsconfig.cjs.json",
+    "prepack": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maildummy/client.git"
+  },
+  "author": "michel-schreurs",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/maildummy/client/issues"
+  },
+  "homepage": "https://github.com/maildummy/client#readme",
+  "devDependencies": {
+    "typescript": "^4.8.4"
+  }
+}

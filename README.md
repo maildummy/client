@@ -1,2 +1,2 @@
 # client
-NodeJS Maildummy client
+JavaScript Maildummy client
