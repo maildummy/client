@@ -1,1 +1,2 @@
-console.log('Maildummy client')
+export * from "./client";
+export * from "./types";
