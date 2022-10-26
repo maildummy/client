@@ -1,11 +1,20 @@
 import fetch from "cross-fetch";
-import { Inbox, MailMetadata, Mail, List } from "./types";
+import { Inbox, MailMetadata, Mail, List, ClientConfig } from "./types";
 
 const domain = process?.env?.MAILDUMMY_DOMAIN || "maildummy.io";
 
 export class MaildummyClient {
   private mails: { [key: string]: string[] } = {};
-  constructor(private apiKey: string) {}
+  private apiKey: string;
+  constructor(config?: ClientConfig) {
+    const apiKey = config?.apiKey || process.env.MAILDUMMY_API_KEY;
+    if (!apiKey) {
+      throw Error(
+        "No API key provided, please provide the apiKey config option, or set the MAILDUMMY_API_KEY environment variable"
+      );
+    }
+    this.apiKey = apiKey;
+  }
 
   /**
    * Create a new inbox

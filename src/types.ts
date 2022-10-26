@@ -1,3 +1,7 @@
+export interface ClientConfig {
+  apiKey?: string;
+}
+
 export type List<ListProps> = {
   /**
    * Provide this token to the list method to fetch the next page of items
