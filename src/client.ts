@@ -1,4 +1,4 @@
-import fetch from 'cross-fetch';
+import 'isomorphic-fetch';
 import { Inbox, MailMetadata, Mail, List, ClientConfig } from './types';
 
 const domain = process?.env?.MAILDUMMY_DOMAIN || 'maildummy.io';
@@ -14,6 +14,11 @@ export class MaildummyClient {
     this.apiKey = apiKey;
   }
 
+  private throwOnError = (res: Response) => {
+    if (res.ok) return;
+    throw new Error(`${res.status} ${res.statusText}`);
+  };
+
   /**
    * Create a new inbox
    * @returns Promise<Inbox>
@@ -23,6 +28,8 @@ export class MaildummyClient {
       method: 'POST',
       headers: { Authorization: this.apiKey },
     });
+
+    this.throwOnError(res);
 
     const { data } = await res.json();
 
@@ -45,6 +52,8 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
+    this.throwOnError(res);
+
     return res.ok;
   };
 
@@ -61,6 +70,8 @@ export class MaildummyClient {
     const res = await fetch(url, {
       headers: { Authorization: this.apiKey },
     });
+
+    this.throwOnError(res);
 
     const { data } = await res.json();
 
@@ -88,6 +99,8 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
+    this.throwOnError(res);
+
     const { data } = await res.json();
     const { message_spam_score, ...mail } = data.mail;
 
@@ -105,6 +118,8 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
+    this.throwOnError(res);
+
     return res.ok;
   };
 
@@ -115,13 +130,15 @@ export class MaildummyClient {
    * @returns Promise<Inbox>
    */
   listMails = async (inboxUuid: string, pageToken?: string): Promise<List<{ mails: MailMetadata[] }>> => {
-    const url = new URL(`https://api.${domain}/v1/mails/`);
+    const url = new URL(`https://api.${domain}/v1/mails/inbox/${inboxUuid}`);
     if (pageToken) {
       url.searchParams.append('next_page', pageToken);
     }
     const res = await fetch(url, {
       headers: { Authorization: this.apiKey },
     });
+
+    this.throwOnError(res);
 
     const { data } = await res.json();
 
@@ -158,6 +175,8 @@ export class MaildummyClient {
           headers: { Authorization: this.apiKey },
         });
 
+        this.throwOnError(res);
+
         const { data } = await res.json();
         const mails: MailMetadata[] = data.mails.map((raw: any) => {
           const { message_spam_score, created_at, ...mail } = raw;
@@ -172,10 +191,7 @@ export class MaildummyClient {
           clearTimeout(timeout);
 
           // Keep track for future requests, so we can identify new mails
-          if (!this.mails[inboxUuid]) {
-            this.mails[inboxUuid] = [];
-          }
-          this.mails[inboxUuid] = [...this.mails[inboxUuid], ...newMails.map((mail) => mail.uuid)];
+          this.mails[inboxUuid] = [...(this.mails[inboxUuid] ?? []), ...newMails.map((mail) => mail.uuid)];
 
           resolve(newMails);
 

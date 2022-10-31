@@ -20,7 +20,9 @@
     }
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest tests",
+    "test:coverage": "jest --coverage tests",
+    "test:watch": "jest --watch tests",
     "clean": "rm -rf ./lib",
     "build": "npm run clean && npm run build:esm && npm run build:cjs",
     "build:esm": "tsc -p ./configs/tsconfig.esm.json && mv lib/esm/index.js lib/esm/index.mjs",
@@ -38,10 +40,13 @@
   },
   "homepage": "https://github.com/maildummy/client#readme",
   "devDependencies": {
+    "@types/jest": "^29.2.0",
     "@types/node": "^18.11.5",
+    "jest": "^29.2.2",
+    "ts-jest": "^29.0.3",
     "typescript": "^4.8.4"
   },
   "dependencies": {
-    "cross-fetch": "^3.1.5"
+    "isomorphic-fetch": "^3.0.0"
   }
 }
