@@ -76,6 +76,7 @@ export class MaildummyClient {
     const { data } = await res.json();
 
     return {
+      count: data.count,
       nextPageToken: data.next_page,
       inboxes: data.inboxes.map((raw: any) => {
         const { created_at, ...inbox } = raw;
@@ -143,6 +144,7 @@ export class MaildummyClient {
     const { data } = await res.json();
 
     return {
+      count: data.count,
       nextPageToken: data.next_page,
       mails: data.mails.map((raw: any) => {
         const { message_spam_score, created_at, ...mail } = raw;
@@ -167,28 +169,32 @@ export class MaildummyClient {
       const timeout = setTimeout(() => {
         if (currentTimeout) clearTimeout(currentTimeout);
 
-        reject(`No mails found within timeout of ${timeoutInSeconds}`);
+        reject(new Error(`No mails found within timeout of ${timeoutInSeconds} seconds`));
       }, timeoutInSeconds * 1000);
 
       const getNewMails = async () => {
-        const res = await fetch(`https://api.${domain}/v1/mails/inbox/${inboxUuid}`, {
-          headers: { Authorization: this.apiKey },
-        });
-
-        this.throwOnError(res);
-
-        const { data } = await res.json();
-        const mails: MailMetadata[] = data.mails.map((raw: any) => {
-          const { message_spam_score, created_at, ...mail } = raw;
-          return {
-            ...mail,
-            createdAt: created_at,
-          } as MailMetadata;
-        });
+        const data = await this.listMails(inboxUuid);
+        const { mails } = data;
+        let nextPageToken = data.nextPageToken;
 
         const newMails = mails?.filter((mail: MailMetadata) => !this.mails[inboxUuid]?.includes(mail.uuid));
         if (newMails.length) {
           clearTimeout(timeout);
+
+          // as long as a complete page is returned, and all items are new mails, we should fetch the next page
+          // any additional mails are added to the array, and as long as the newMails length is equal to an amount matching
+          // full pages, we keep repeating the process, provided the nextPageToken is returned
+          const pageSize = 20;
+          while (newMails.length % pageSize === 0 && nextPageToken) {
+            // Received only new mails, make sure to fetch the next page as well to check for new mails
+            const additional = await this.listMails(inboxUuid, nextPageToken);
+            additional.mails.forEach((mail) => {
+              if (!this.mails[inboxUuid]?.includes(mail.uuid)) {
+                newMails.push(mail);
+              }
+            });
+            nextPageToken = additional.nextPageToken;
+          }
 
           // Keep track for future requests, so we can identify new mails
           this.mails[inboxUuid] = [...(this.mails[inboxUuid] ?? []), ...newMails.map((mail) => mail.uuid)];

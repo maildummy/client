@@ -1,4 +1,4 @@
-import { MaildummyClient } from '../index';
+import { MaildummyClient, MailMetadata } from '../index';
 
 global.fetch = jest.fn(() => Promise.resolve(new Response('{}', { status: 200 })));
 
@@ -18,7 +18,7 @@ describe('client', () => {
     const originalKey = process.env.MAILDUMMY_API_KEY;
     process.env.MAILDUMMY_API_KEY = 'should-be-ignored';
     const client = new MaildummyClient({ apiKey: 'test-key' });
-    mockFetchResponse({ inboxes: [] });
+    mockFetchResponse({ count: 0, inboxes: [] });
 
     await client.listInboxes();
 
@@ -35,7 +35,7 @@ describe('client', () => {
     const originalKey = process.env.MAILDUMMY_API_KEY;
     process.env.MAILDUMMY_API_KEY = 'test-key';
     const client = new MaildummyClient();
-    mockFetchResponse({ inboxes: [] });
+    mockFetchResponse({ count: 0, inboxes: [] });
 
     await client.listInboxes();
 
@@ -123,6 +123,7 @@ describe('client', () => {
     it('should list inboxes', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
+        count: 3,
         inboxes: [
           {
             uuid: 'testuuid1',
@@ -143,10 +144,11 @@ describe('client', () => {
         next_page: 'nextpagetoken',
       });
 
-      const { inboxes, nextPageToken } = await client.listInboxes();
+      const { count, inboxes, nextPageToken } = await client.listInboxes();
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(new URL(`${baseUrl}/inboxes`), expect.objectContaining({}));
+      expect(count).toEqual(3);
       expect(inboxes).toEqual([
         {
           uuid: 'testuuid1',
@@ -170,6 +172,7 @@ describe('client', () => {
     it('should fetch the next page of inboxes', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
+        count: 1,
         inboxes: [
           {
             uuid: 'testuuid4',
@@ -180,10 +183,11 @@ describe('client', () => {
         next_page: 'nextpagetoken',
       });
 
-      const { inboxes, nextPageToken } = await client.listInboxes('nextpagetoken');
+      const { count, inboxes, nextPageToken } = await client.listInboxes('nextpagetoken');
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(new URL(`${baseUrl}/inboxes?next_page=nextpagetoken`), expect.objectContaining({}));
+      expect(count).toEqual(1);
       expect(inboxes).toEqual([
         {
           uuid: 'testuuid4',
@@ -253,61 +257,45 @@ describe('client', () => {
     it('should list mails', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
+        count: 2,
         mails: [
           {
             uuid: 'testuuid1',
-            date: 123451,
-            from: { name: 'testfrom', address: 'from@maildummy.io' },
-            to: [{ name: 'testto', address: 'to@maildummy.io' }],
-            cc: [{ name: 'testcc', address: 'cc@maildummy.io' }],
-            bcc: [{ name: 'testbcc', address: 'bcc@maildummy.io' }],
+            from: 'from@maildummy.io',
+            recipient: 'recipient@maildummy.io',
             subject: 'testsubject',
-            content: 'testcontent',
-            message_spam_score: 1,
-            attachments: ['https://testurl'],
+            created_at: 123451,
           },
           {
             uuid: 'testuuid2',
-            date: 123452,
-            from: { name: 'testfrom', address: 'from@maildummy.io' },
-            to: [{ name: 'testto', address: 'to@maildummy.io' }],
-            cc: [{ name: 'testcc', address: 'cc@maildummy.io' }],
-            bcc: [{ name: 'testbcc', address: 'bcc@maildummy.io' }],
+            from: 'from@maildummy.io',
+            recipient: 'recipient@maildummy.io',
             subject: 'testsubject',
-            content: 'testcontent',
-            message_spam_score: 1,
-            attachments: ['https://testurl'],
+            created_at: 123452,
           },
         ],
         next_page: 'nextpagetoken',
       });
 
-      const { mails, nextPageToken } = await client.listMails('testuuid');
+      const { count, mails, nextPageToken } = await client.listMails('testuuid');
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(new URL(`${baseUrl}/mails/inbox/testuuid`), expect.objectContaining({}));
+      expect(count).toEqual(2);
       expect(mails).toEqual([
         {
           uuid: 'testuuid1',
-          date: 123451,
-          from: { name: 'testfrom', address: 'from@maildummy.io' },
-          to: [{ name: 'testto', address: 'to@maildummy.io' }],
-          cc: [{ name: 'testcc', address: 'cc@maildummy.io' }],
-          bcc: [{ name: 'testbcc', address: 'bcc@maildummy.io' }],
+          from: 'from@maildummy.io',
+          recipient: 'recipient@maildummy.io',
           subject: 'testsubject',
-          content: 'testcontent',
-          attachments: ['https://testurl'],
+          createdAt: 123451,
         },
         {
           uuid: 'testuuid2',
-          date: 123452,
-          from: { name: 'testfrom', address: 'from@maildummy.io' },
-          to: [{ name: 'testto', address: 'to@maildummy.io' }],
-          cc: [{ name: 'testcc', address: 'cc@maildummy.io' }],
-          bcc: [{ name: 'testbcc', address: 'bcc@maildummy.io' }],
+          from: 'from@maildummy.io',
+          recipient: 'recipient@maildummy.io',
           subject: 'testsubject',
-          content: 'testcontent',
-          attachments: ['https://testurl'],
+          createdAt: 123452,
         },
       ]);
       expect(nextPageToken).toBe('nextpagetoken');
@@ -316,41 +304,201 @@ describe('client', () => {
     it('should fetch the next page of mails', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
+        count: 1,
         mails: [
           {
             uuid: 'testuuid3',
-            date: 123453,
-            from: { name: 'testfrom', address: 'from@maildummy.io' },
-            to: [{ name: 'testto', address: 'to@maildummy.io' }],
-            cc: [{ name: 'testcc', address: 'cc@maildummy.io' }],
-            bcc: [{ name: 'testbcc', address: 'bcc@maildummy.io' }],
+            from: 'from@maildummy.io',
+            recipient: 'recipient@maildummy.io',
             subject: 'testsubject',
-            content: 'testcontent',
-            message_spam_score: 1,
-            attachments: ['https://testurl'],
+            created_at: 123453,
           },
         ],
         next_page: 'nextpagetoken',
       });
 
-      const { mails, nextPageToken } = await client.listMails('testuuid', 'nextpagetoken');
+      const { count, mails, nextPageToken } = await client.listMails('testuuid', 'nextpagetoken');
 
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(new URL(`${baseUrl}/mails/inbox/testuuid?next_page=nextpagetoken`), expect.objectContaining({}));
+      expect(count).toEqual(1);
       expect(mails).toEqual([
         {
           uuid: 'testuuid3',
-          date: 123453,
-          from: { name: 'testfrom', address: 'from@maildummy.io' },
-          to: [{ name: 'testto', address: 'to@maildummy.io' }],
-          cc: [{ name: 'testcc', address: 'cc@maildummy.io' }],
-          bcc: [{ name: 'testbcc', address: 'bcc@maildummy.io' }],
+          from: 'from@maildummy.io',
+          recipient: 'recipient@maildummy.io',
           subject: 'testsubject',
-          content: 'testcontent',
-          attachments: ['https://testurl'],
+          createdAt: 123453,
         },
       ]);
       expect(nextPageToken).toBe('nextpagetoken');
+    });
+  });
+
+  describe('waitForNewMails', () => {
+    it('should return new mails which were not returned before', async () => {
+      fetch.mockImplementation(() => new Response(JSON.stringify({ data: { count: 0, mails: [] } }), { status: 200 }));
+
+      // For all intermittent calls, return empty mails
+      const client = new MaildummyClient();
+      const listMailsSpy = jest.spyOn(client, 'listMails');
+      listMailsSpy.mockResolvedValue({
+        count: 0,
+        mails: [],
+      });
+      listMailsSpy.mockResolvedValueOnce({
+        count: 2,
+        mails: [
+          {
+            uuid: 'testuuid2',
+          } as MailMetadata,
+          {
+            uuid: 'testuuid1',
+          } as MailMetadata,
+        ],
+      });
+      // to prepare, fetch some mails mocked above
+      await client.waitForNewMails('testuuid');
+
+      // Trigger the new mail asynchronously
+      setTimeout(() => {
+        listMailsSpy.mockResolvedValueOnce({
+          count: 1,
+          mails: [
+            {
+              uuid: 'testuuid3',
+              from: 'from@maildummy.io',
+              recipient: 'recipient@maildummy.io',
+              subject: 'testsubject',
+              createdAt: 123453,
+            },
+            {
+              uuid: 'testuuid2',
+            } as MailMetadata,
+            {
+              uuid: 'testuuid1',
+            } as MailMetadata,
+          ],
+        });
+      }, 2000);
+
+      const mails = await client.waitForNewMails('testuuid');
+
+      expect(listMailsSpy).toHaveBeenCalledWith('testuuid');
+      // Only the last mail should be returned
+      expect(mails).toEqual([
+        {
+          uuid: 'testuuid3',
+          from: 'from@maildummy.io',
+          recipient: 'recipient@maildummy.io',
+          subject: 'testsubject',
+          createdAt: 123453,
+        },
+      ]);
+    });
+
+    it('should also return next page of new mails when more than 1 page is available', async () => {
+      fetch.mockImplementation(() => new Response(JSON.stringify({ data: { count: 0, mails: [] } }), { status: 200 }));
+
+      // For all intermittent calls, return empty mails
+      const client = new MaildummyClient();
+      const listMailsSpy = jest.spyOn(client, 'listMails');
+
+      listMailsSpy.mockResolvedValue({
+        count: 0,
+        mails: [],
+      });
+      listMailsSpy.mockResolvedValueOnce({
+        count: 2,
+        mails: [
+          {
+            uuid: 'testuuid2',
+          } as MailMetadata,
+          {
+            uuid: 'testuuid1',
+          } as MailMetadata,
+        ],
+      });
+      // to prepare, fetch some mails mocked above
+      await client.waitForNewMails('testuuid');
+
+      // Trigger the new mail asynchronously
+      setTimeout(() => {
+        // we will generate several pages of results
+
+        // mails 46 through 27
+        listMailsSpy.mockResolvedValueOnce({
+          count: 20,
+          mails: Array.from(
+            { length: 20 },
+            (_, i) =>
+              ({
+                uuid: `testuuid${46 - i}`,
+              } as MailMetadata)
+          ),
+          nextPageToken: 'nextpagetoken',
+        });
+        // mails 26 through 7
+        listMailsSpy.mockResolvedValueOnce({
+          count: 20,
+          mails: Array.from(
+            { length: 20 },
+            (_, i) =>
+              ({
+                uuid: `testuuid${26 - i}`,
+              } as MailMetadata)
+          ),
+          nextPageToken: 'nextpagetoken',
+        });
+
+        // mails 6 through 1
+        listMailsSpy.mockResolvedValueOnce({
+          count: 20,
+          mails: Array.from(
+            { length: 6 },
+            (_, i) =>
+              ({
+                uuid: `testuuid${6 - i}`,
+              } as MailMetadata)
+          ),
+        });
+      }, 2000);
+
+      const mails = await client.waitForNewMails('testuuid');
+
+      expect(listMailsSpy).toHaveBeenCalledWith('testuuid');
+      expect(listMailsSpy).toHaveBeenCalledWith('testuuid', 'nextpagetoken');
+
+      // Only the last 44 mails should be returned
+      expect(mails).toEqual(
+        Array.from(
+          { length: 44 },
+          (_, i) =>
+            ({
+              uuid: `testuuid${46 - i}`,
+            } as MailMetadata)
+        )
+      );
+    });
+
+    it('should timeout when no new mails are received', async () => {
+      fetch.mockImplementation(() => new Response(JSON.stringify({ data: { count: 0, mails: [] } }), { status: 200 }));
+
+      // For all intermittent calls, return empty mails
+      const client = new MaildummyClient();
+      const listMailsSpy = jest.spyOn(client, 'listMails');
+      listMailsSpy.mockResolvedValue({
+        count: 0,
+        mails: [],
+      });
+
+      expect.assertions(1);
+
+      try {
+        await client.waitForNewMails('testuuid', 3);
+      } catch (e) {
+        expect(e).toHaveProperty('message', 'No mails found within timeout of 3 seconds');
+      }
     });
   });
 });

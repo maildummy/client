@@ -3,10 +3,11 @@ export interface ClientConfig {
 }
 
 export type List<ListProps> = {
+  count: number;
   /**
-   * Provide this token to the list method to fetch the next page of items
+   * Provide this token as argument to a new list call, to fetch the next page of items
    */
-  nextPageToken: string;
+  nextPageToken?: string;
 } & ListProps;
 
 export interface Inbox {
