@@ -78,7 +78,7 @@ describe('client', () => {
           headers: { Authorization: 'test-key' },
         })
       );
-      expect(e).toHaveProperty('message', '401 Unauthorized');
+      expect(e).toHaveProperty('message', expect.stringContaining('401'));
     }
   });
 
