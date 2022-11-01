@@ -1,5 +1,11 @@
 name: Snyk Security Check
-on: [push,pull_request]
+on:
+  workflow_run:
+    workflows: ['Tests']
+    branches: [main]
+    types:
+      - completed
+
 jobs:
   security:
     runs-on: ubuntu-latest
