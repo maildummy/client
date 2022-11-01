@@ -1,6 +1,14 @@
 {
   "name": "@maildummy/client",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
+  "release": {
+    "branches": [
+      "main"
+    ]
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "JavaScript client for Maildummy",
   "types": "./lib/cjs/types/index.d.ts",
   "main": "./lib/cjs/index.js",
@@ -27,11 +35,12 @@
     "build": "npm run clean && npm run build:esm && npm run build:cjs",
     "build:esm": "tsc -p ./configs/tsconfig.esm.json && mv lib/esm/index.js lib/esm/index.mjs",
     "build:cjs": "tsc -p ./configs/tsconfig.cjs.json",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "semantic-release": "semantic-release"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/maildummy/client.git"
+    "url": "https://github.com/maildummy/client.git"
   },
   "author": "michel-schreurs",
   "license": "MIT",
@@ -43,6 +52,7 @@
     "@types/jest": "^29.2.0",
     "@types/node": "^18.11.5",
     "jest": "^29.2.2",
+    "semantic-release": "^19.0.5",
     "ts-jest": "^29.0.3",
     "typescript": "^4.8.4"
   },
