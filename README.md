@@ -3,6 +3,8 @@ Integrate real email messages in your test workflows quickly and free. [Read mor
 
 ## Getting Started
 
+Create an API key at the [settings page](https://maildummy.io/settings).
+
 Install the client using [`yarn`](https://yarnpkg.com/en/package/@maildummy/client):
 
 ```bash
