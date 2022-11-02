@@ -47,7 +47,18 @@
   "bugs": {
     "url": "https://github.com/maildummy/client/issues"
   },
-  "homepage": "https://github.com/maildummy/client#readme",
+  "homepage": "https://maildummy.io",
+  "keywords": [
+    "email",
+    "test",
+    "testing",
+    "cypress",
+    "puppeteer",
+    "jest",
+    "e2e",
+    "end-to-end",
+    "node"
+  ],
   "devDependencies": {
     "@types/jest": "^29.2.0",
     "@types/node": "^18.11.5",

@@ -1,5 +1,25 @@
+<h1 align="center">
+   <b>
+        <a href="https://maildummy.io"><img width="300" src="https://dev.maildummy.io/static/full-web-606c45659231f9fe5e827999b181eb0d.svg" /></a><br>
+    </b>
+</h1>
+
+<p align="center">End-to-end email testing for free.</p>
+
+<div align="center">
+
+[![npm version](https://img.shields.io/npm/v/@maildummy/client.svg?style=flat-square)](https://www.npmjs.org/package/@maildummy/client)
+[![Build status](https://img.shields.io/github/workflow/status/maildummy/client/Release/main?label=CI&logo=github&style=flat-square)](https://github.com/maildummy/client/actions/workflows/release.yml)
+[![Coverage Status](https://coveralls.io/repos/github/maildummy/client/badge.svg?branch=main)](https://coveralls.io/github/maildummy/client?branch=main)
+[![install size](https://packagephobia.com/badge?p=@maildummy/client)](https://packagephobia.com/result?p=@maildummy/client)
+[![Known Vulnerabilities](https://snyk.io/test/npm/@maildummy/client/badge.svg)](https://snyk.io/test/npm/@maildummy/client)
+
+</div>
+
+
 # [Maildummy client](https://maildummy.io/)
-Integrate real email messages in your test workflows quickly and free. [Read more here](https://maildummy.io/docs), or [sign up](https://maildummy.io/sign-up/) to get started.
+Integrate real email messages in your (e2e) tests quickly and free.  
+[Read more here](https://maildummy.io/docs), or [sign up](https://maildummy.io/sign-up/) to get started.
 
 ## Getting Started
 

@@ -8,4 +8,5 @@ module.exports = {
       { tsconfig: './configs/tsconfig.test.json' },
     ],
   },
+  coverageReporters: ['lcov', 'html'],
 };
