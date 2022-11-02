@@ -9,7 +9,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "description": "JavaScript client for Maildummy",
+  "description": "End-to-end email testing for free",
   "types": "./lib/cjs/types/index.d.ts",
   "main": "./lib/cjs/index.js",
   "files": [
