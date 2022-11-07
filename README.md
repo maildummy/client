@@ -39,15 +39,16 @@ npm install --save-dev @maildummy/client
 
 ## Usage
 
-### Jest
-Example account sign up test using [jest](https://jestjs.io/).
-``` ts
-import { MaildummyClient, Inbox } from '@maildummy/client';
-import { config } from '../config';
-import { signUp, Account } from './account.util';
+### Puppeteer (with jest)
+Example account sign up test using [jest-puppeteer](https://jestjs.io/docs/puppeteer).
 
-describe('Account util', () => {
+``` ts
+import { MaildummyClient, Inbox, Mail } from '@maildummy/client';
+import { config } from '../config';
+
+describe('Create account', () => {
   let inbox: Inbox;
+  let confirmationMail: Mail;
 
   // provide the apiKey in the options, or set the environment variable MAILDUMMY_API_KEY
   const md = new MaildummyClient({ apiKey: config.maildummy.apiKey });
@@ -63,29 +64,43 @@ describe('Account util', () => {
     await md.deleteInbox(inbox.uuid);
   });
 
-  it('Should receive the welcome email', async () => {
-    // prepare a new account
-    const account: Account = {
-      fullName: 'test user',
-      email: inbox.address,
-    };
+  it('should receive the confirmation email', async () => {
+    await page.goto(`${config.url}/sign-up`);
 
-    // execute the signup
-    await signUp(account);
+    // fill and submit the form
+    await page.waitForSelector('[name=fullname]');
+    await page.type('[name=fullname]', 'test user');
+    await page.waitForSelector('[name=email]');
+    await page.type('[name=email]', inbox.address);
+    await page.waitForSelector('[type=submit]');
+    await page.click('[type=submit]');
 
     // wait for the signup email to arrive
     const newMails = await md.waitForNewMails(inbox.uuid);
-
-    // assert the mail metadata
     expect(newMails).toHaveLength(1);
     const metaData = newMails[0];
     expect(metaData.from).toEqual(config.sendmail.fromAddress);
     expect(metaData.subject).toEqual('You have signed up!');
 
-    // to assert the contents, the details need to be fetched first
-    const mail = await md.getMail(metaData.uuid);
-    expect(mail.content).toContain(`<h1>Welcome ${account.fullName},</h1>`);
-    expect(mail.attachments).toHaveLength(2);
+    // to assert the contents, the mail object needs to be fetched
+    confirmationMail = await md.getMail(newMails[0].uuid);
+    expect(confirmationMail.content).toContain('<h1>Welcome test user,</h1>');
+  });
+
+  it('should be able to confirm the email address', async () => {
+    expect(confirmationMail).toBeDefined();
+
+    // render the mail html and open the confirmation link
+    page.setContent(confirmationMail.content);
+    await page.waitForSelector('a');
+    const linkText = await page.$eval('a', (el) => (el as HTMLElement).innerText);
+    expect(linkText).toContain('confirm email');
+    await page.click('a');
+
+    // assert that the email address has been confirmed
+    await page.waitForSelector('h1');
+    const title = await page.$eval('h1', (el) => (el as HTMLElement).innerText);
+    expect(title).toContain('has been confirmed');
   });
 });
 
@@ -94,11 +109,12 @@ describe('Account util', () => {
 ### Cypress
 Example account sign up test using [Cypress](https://www.cypress.io/).
 ``` ts
-import { MaildummyClient, Inbox } from '@maildummy/client';
-import { config } from '../config';
+import { MaildummyClient, Inbox, Mail, List, MailMetadata } from '@maildummy/client';
+import { config } from '../../config';
 
 describe('Sign up', () => {
   let inbox: Inbox;
+  let confirmationMail: Mail;
 
   // provide the apiKey in the options, or set the environment variable MAILDUMMY_API_KEY
   const md = new MaildummyClient({ apiKey: config.maildummy.apiKey });
@@ -114,29 +130,44 @@ describe('Sign up', () => {
     await md.deleteInbox(inbox.uuid);
   });
 
-  it('Should receive the welcome email', async () => {
-    cy.visit('https://example.cypress.io/sign-up');
+  it('Should receive the confirmation email', () => {
+    cy.visit('/sign-up');
 
-    // fille and submit the form
+    // fill and submit the form
     cy.get('input[name="fullname"]').type('test user').should('have.value', 'test user');
     cy.get('input[name="email"]').type(inbox.address).should('have.value', inbox.address);
     cy.get('form#signUp').submit();
 
-    // wait for the signup email to arrive
-    const newMails = await md.waitForNewMails(inbox.uuid);
+    // wait for the signup email to arrive, provide a larger timeout to cypress to allow the email to be sent
+    cy.wrap(md.waitForNewMails(inbox.uuid), { timeout: 10000 }).then((newMails: List<MailMetadata>) => {
+      expect(newMails).to.have.length(1);
 
-    // assert the mail metadata
-    expect(newMails).to.have.length(1);
-    const metaData = newMails[0];
-    expect(metaData.from).to.eql(config.sendmail.fromAddress);
-    expect(metaData.subject).to.eql('You have signed up!');
+      // assert the mail metadata
+      const metaData = newMails[0];
+      expect(metaData.from).to.eql(config.sendmail.fromAddress);
+      expect(metaData.subject).to.eql('You have signed up!');
 
-    // to assert the contents, the details need to be fetched first
-    const mail = await md.getMail(metaData.uuid);
-    expect(mail.content).to.contain('<h1>Welcome test user,</h1>');
-    expect(mail.attachments).to.have.length(2);
+      // to assert the contents, the mail object needs to be fetched
+      cy.wrap(md.getMail(metaData.uuid)).then((mail: Mail) => {
+        confirmationMail = mail;
+        expect(confirmationMail.content).to.contain('<h1>Welcome test user,</h1>');
+      });
+    });
+  });
+
+  it('Should be able to confirm the email address', () => {
+    expect(confirmationMail).to.not.be.undefined;
+
+    // evaluate the mail html and open the confirmation url
+    const $a = Cypress.$(confirmationMail.content).find('a');
+    expect($a.text()).to.contain('confirm email');
+    cy.visit($a.attr('href'));
+
+    // assert that the email address has been confirmed
+    cy.get('h1').should('contain', 'has been confirmed');
   });
 });
+
 ```
 
 ## Documentation
