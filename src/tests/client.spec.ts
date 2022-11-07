@@ -497,7 +497,7 @@ describe('client', () => {
       try {
         await client.waitForNewMails('testuuid', 3);
       } catch (e) {
-        expect(e).toHaveProperty('message', 'No mails found within timeout of 3 seconds');
+        expect(e).toHaveProperty('message', 'No new emails received within timeout of 3 seconds');
       }
     });
   });
