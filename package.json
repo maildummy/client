@@ -52,12 +52,12 @@
     "email",
     "test",
     "testing",
-    "cypress",
     "puppeteer",
+    "jest-puppeteer",
     "jest",
+    "cypress",
     "e2e",
-    "end-to-end",
-    "node"
+    "end-to-end"
   ],
   "devDependencies": {
     "@types/jest": "^29.2.0",
