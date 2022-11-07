@@ -169,7 +169,7 @@ export class MaildummyClient {
       const timeout = setTimeout(() => {
         if (currentTimeout) clearTimeout(currentTimeout);
 
-        reject(new Error(`No mails found within timeout of ${timeoutInSeconds} seconds`));
+        reject(new Error(`No new emails received within timeout of ${timeoutInSeconds} seconds`));
       }, timeoutInSeconds * 1000);
 
       const getNewMails = async () => {
