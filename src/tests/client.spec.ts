@@ -3,8 +3,8 @@ import { MaildummyClient, MailMetadata } from '../index';
 global.fetch = jest.fn(() => Promise.resolve(new Response('{}', { status: 200 })));
 
 const fetch = global.fetch as jest.Mock;
-const mockFetchResponse = (data: any, status = 200) => {
-  fetch.mockReturnValueOnce(new Response(JSON.stringify({ data }), { status }));
+const mockFetchResponse = (jsonData: any, status = 200, statusText?: string) => {
+  fetch.mockReturnValueOnce(new Response(JSON.stringify(jsonData), { status, statusText }));
 };
 const baseUrl = 'https://api.maildummy.io/v1';
 
@@ -18,7 +18,7 @@ describe('client', () => {
     const originalKey = process.env.MAILDUMMY_API_KEY;
     process.env.MAILDUMMY_API_KEY = 'should-be-ignored';
     const client = new MaildummyClient({ apiKey: 'test-key' });
-    mockFetchResponse({ count: 0, inboxes: [] });
+    mockFetchResponse({ data: { count: 0, inboxes: [] } });
 
     await client.listInboxes();
 
@@ -35,7 +35,7 @@ describe('client', () => {
     const originalKey = process.env.MAILDUMMY_API_KEY;
     process.env.MAILDUMMY_API_KEY = 'test-key';
     const client = new MaildummyClient();
-    mockFetchResponse({ count: 0, inboxes: [] });
+    mockFetchResponse({ data: { count: 0, inboxes: [] } });
 
     await client.listInboxes();
 
@@ -65,7 +65,7 @@ describe('client', () => {
 
   it('should throw error responses', async () => {
     const client = new MaildummyClient();
-    mockFetchResponse({ message: 'Unauthorized' }, 401);
+    mockFetchResponse({}, 401, 'Unauthorized');
     expect.assertions(3);
 
     try {
@@ -78,7 +78,26 @@ describe('client', () => {
           headers: { Authorization: 'test-key' },
         })
       );
-      expect(e).toHaveProperty('message', expect.stringContaining('401'));
+      expect(e).toHaveProperty('message', expect.stringMatching('401 Unauthorized'));
+    }
+  });
+
+  it('should throw custom error messages', async () => {
+    const client = new MaildummyClient();
+    mockFetchResponse({ message: 'Custom error message' }, 400, 'Bad Request');
+    expect.assertions(3);
+
+    try {
+      await client.listInboxes();
+    } catch (e) {
+      expect(fetch).toHaveBeenCalledTimes(1);
+      expect(fetch).toHaveBeenCalledWith(
+        new URL(`${baseUrl}/inboxes`),
+        expect.objectContaining({
+          headers: { Authorization: 'test-key' },
+        })
+      );
+      expect(e).toHaveProperty('message', expect.stringContaining('Custom error message'));
     }
   });
 
@@ -86,7 +105,7 @@ describe('client', () => {
     it('should return a newly created inbox', async () => {
       const client = new MaildummyClient();
       const now = Date.now();
-      mockFetchResponse({ uuid: 'testuuid', address: 'testuuid@maildummy.io', inbox: { created_at: now } });
+      mockFetchResponse({ data: { uuid: 'testuuid', address: 'testuuid@maildummy.io', inbox: { created_at: now } } });
 
       const inbox = await client.createInbox();
 
@@ -104,7 +123,7 @@ describe('client', () => {
   describe('deleteInbox', () => {
     it('should delete an inbox by uuid', async () => {
       const client = new MaildummyClient();
-      mockFetchResponse({});
+      mockFetchResponse({ data: {} });
 
       const isDeleted = await client.deleteInbox('testuuid');
 
@@ -123,25 +142,27 @@ describe('client', () => {
     it('should list inboxes', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
-        count: 3,
-        inboxes: [
-          {
-            uuid: 'testuuid1',
-            address: 'testuuid1@maildummy.io',
-            created_at: 123451,
-          },
-          {
-            uuid: 'testuuid2',
-            address: 'testuuid2@maildummy.io',
-            created_at: 123452,
-          },
-          {
-            uuid: 'testuuid3',
-            address: 'testuuid2@maildummy.io',
-            created_at: 123452,
-          },
-        ],
-        next_page: 'nextpagetoken',
+        data: {
+          count: 3,
+          inboxes: [
+            {
+              uuid: 'testuuid1',
+              address: 'testuuid1@maildummy.io',
+              created_at: 123451,
+            },
+            {
+              uuid: 'testuuid2',
+              address: 'testuuid2@maildummy.io',
+              created_at: 123452,
+            },
+            {
+              uuid: 'testuuid3',
+              address: 'testuuid2@maildummy.io',
+              created_at: 123452,
+            },
+          ],
+          next_page: 'nextpagetoken',
+        },
       });
 
       const { count, inboxes, nextPageToken } = await client.listInboxes();
@@ -172,15 +193,17 @@ describe('client', () => {
     it('should fetch the next page of inboxes', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
-        count: 1,
-        inboxes: [
-          {
-            uuid: 'testuuid4',
-            address: 'testuuid4@maildummy.io',
-            created_at: 123454,
-          },
-        ],
-        next_page: 'nextpagetoken',
+        data: {
+          count: 1,
+          inboxes: [
+            {
+              uuid: 'testuuid4',
+              address: 'testuuid4@maildummy.io',
+              created_at: 123454,
+            },
+          ],
+          next_page: 'nextpagetoken',
+        },
       });
 
       const { count, inboxes, nextPageToken } = await client.listInboxes('nextpagetoken');
@@ -203,17 +226,19 @@ describe('client', () => {
     it('should return a mail by uuid', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
-        mail: {
-          uuid: 'testuuid',
-          date: 123456,
-          from: { name: 'testfrom', address: 'from@maildummy.io' },
-          to: [{ name: 'testto', address: 'to@maildummy.io' }],
-          cc: [{ name: 'testcc', address: 'cc@maildummy.io' }],
-          bcc: [{ name: 'testbcc', address: 'bcc@maildummy.io' }],
-          subject: 'testsubject',
-          content: 'testcontent',
-          message_spam_score: 1,
-          attachments: ['https://testurl'],
+        data: {
+          mail: {
+            uuid: 'testuuid',
+            date: 123456,
+            from: { name: 'testfrom', address: 'from@maildummy.io' },
+            to: [{ name: 'testto', address: 'to@maildummy.io' }],
+            cc: [{ name: 'testcc', address: 'cc@maildummy.io' }],
+            bcc: [{ name: 'testbcc', address: 'bcc@maildummy.io' }],
+            subject: 'testsubject',
+            content: 'testcontent',
+            message_spam_score: 1,
+            attachments: ['https://testurl'],
+          },
         },
       });
 
@@ -238,7 +263,7 @@ describe('client', () => {
   describe('deleteMail', () => {
     it('should delete an email by uuid', async () => {
       const client = new MaildummyClient();
-      mockFetchResponse({});
+      mockFetchResponse({ data: {} });
 
       const isDeleted = await client.deleteMail('testuuid');
 
@@ -257,24 +282,26 @@ describe('client', () => {
     it('should list mails', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
-        count: 2,
-        mails: [
-          {
-            uuid: 'testuuid1',
-            from: 'from@maildummy.io',
-            recipient: 'recipient@maildummy.io',
-            subject: 'testsubject',
-            created_at: 123451,
-          },
-          {
-            uuid: 'testuuid2',
-            from: 'from@maildummy.io',
-            recipient: 'recipient@maildummy.io',
-            subject: 'testsubject',
-            created_at: 123452,
-          },
-        ],
-        next_page: 'nextpagetoken',
+        data: {
+          count: 2,
+          mails: [
+            {
+              uuid: 'testuuid1',
+              from: 'from@maildummy.io',
+              recipient: 'recipient@maildummy.io',
+              subject: 'testsubject',
+              created_at: 123451,
+            },
+            {
+              uuid: 'testuuid2',
+              from: 'from@maildummy.io',
+              recipient: 'recipient@maildummy.io',
+              subject: 'testsubject',
+              created_at: 123452,
+            },
+          ],
+          next_page: 'nextpagetoken',
+        },
       });
 
       const { count, mails, nextPageToken } = await client.listMails('testuuid');
@@ -304,17 +331,19 @@ describe('client', () => {
     it('should fetch the next page of mails', async () => {
       const client = new MaildummyClient();
       mockFetchResponse({
-        count: 1,
-        mails: [
-          {
-            uuid: 'testuuid3',
-            from: 'from@maildummy.io',
-            recipient: 'recipient@maildummy.io',
-            subject: 'testsubject',
-            created_at: 123453,
-          },
-        ],
-        next_page: 'nextpagetoken',
+        data: {
+          count: 1,
+          mails: [
+            {
+              uuid: 'testuuid3',
+              from: 'from@maildummy.io',
+              recipient: 'recipient@maildummy.io',
+              subject: 'testsubject',
+              created_at: 123453,
+            },
+          ],
+          next_page: 'nextpagetoken',
+        },
       });
 
       const { count, mails, nextPageToken } = await client.listMails('testuuid', 'nextpagetoken');

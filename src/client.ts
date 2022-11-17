@@ -14,9 +14,24 @@ export class MaildummyClient {
     this.apiKey = apiKey;
   }
 
-  private throwOnError = (res: Response) => {
+  /**
+   * Checks if the response was successful, or throws an error
+   *
+   * @param res Response
+   * @returns Promise<undefined>
+   */
+  private throwOnError = async (res: Response) => {
     if (res.ok) return;
-    throw new Error(`${res.status} ${res.statusText}`);
+
+    let text = res.statusText;
+
+    // When provided, throw the custom error message from the response
+    try {
+      const { message } = await res.json();
+      text = message || text;
+    } catch (e) {}
+
+    throw new Error(`${res.status} ${text}`);
   };
 
   /**
@@ -29,7 +44,7 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
-    this.throwOnError(res);
+    await this.throwOnError(res);
 
     const { data } = await res.json();
 
@@ -52,7 +67,7 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
-    this.throwOnError(res);
+    await this.throwOnError(res);
 
     return res.ok;
   };
@@ -71,7 +86,7 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
-    this.throwOnError(res);
+    await this.throwOnError(res);
 
     const { data } = await res.json();
 
@@ -100,7 +115,7 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
-    this.throwOnError(res);
+    await this.throwOnError(res);
 
     const { data } = await res.json();
     const { message_spam_score, ...mail } = data.mail;
@@ -119,7 +134,7 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
-    this.throwOnError(res);
+    await this.throwOnError(res);
 
     return res.ok;
   };
@@ -139,7 +154,7 @@ export class MaildummyClient {
       headers: { Authorization: this.apiKey },
     });
 
-    this.throwOnError(res);
+    await this.throwOnError(res);
 
     const { data } = await res.json();
 
